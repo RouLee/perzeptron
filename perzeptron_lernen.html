@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Perzeptron Lernanimation – Hunde vs. Katzen</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; }
+    .container { display: flex; height: 100vh; }
+    .left { width: 32%; padding: 20px; overflow-y: auto; border-right: 1px solid #ccc; }
+    .right { width: 68%; padding: 20px; }
+    h2 { margin-top: 0; }
+    .point { padding: 6px; margin-bottom: 4px; border-radius: 4px; }
+    .dog { background-color: rgba(255,0,0,0.2); }
+    .cat { background-color: rgba(0,0,255,0.2); }
+    .active { outline: 2px solid #000; }
+    canvas { border: 1px solid #333; }
+    .weights { margin-top: 15px; font-size: 18px; }
+    button { margin: 5px 5px 0 0; padding: 6px 12px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="left">
+    <h2>Datenpunkte</h2>
+    <div id="dataList"></div>
+    <button onclick="step()">Nächster Schritt</button>
+    <button onclick="toggleAuto()">▶ / ⏸ Auto</button>
+    <button onclick="resetTraining()">↺ Reset</button>
+    <div class="weights" id="weights"></div>
+    <div class="weights" id="epochInfo"></div>
+  </div>
+  <div class="right">
+    <h2>Feature Space</h2>
+    <canvas id="plot" width="600" height="600"></canvas>
+  </div>
+</div>
+
+<script>
+const data = [
+  {label: 'H', x: 2, y: 10}, {label: 'H', x: 1, y: 9}, {label: 'H', x: 1, y: 8},
+  {label: 'H', x: 3, y: 8}, {label: 'H', x: 6, y: 8}, {label: 'H', x: 2, y: 6},
+  {label: 'H', x: 0, y: 4}, {label: 'H', x: 1, y: 5},
+  {label: 'K', x: 5, y: 2}, {label: 'K', x: 6, y: 1}, {label: 'K', x: 7, y: 2},
+  {label: 'K', x: 7, y: 4}, {label: 'K', x: 9, y: 2}, {label: 'K', x: 10, y: 2},
+  {label: 'K', x: 1, y: 1}, {label: 'K', x: 2, y: 2}, {label: 'K', x: 3, y: 1}
+];
+
+let w1, w2, b;
+const lr = 1;
+let index = 0;
+let epoch = 1;
+let auto = false;
+let timer = null;
+
+const canvas = document.getElementById('plot');
+const ctx = canvas.getContext('2d');
+
+function resetTraining() {
+  w1 = 0.2;
+  w2 = -1;
+  b = 0;
+  index = 0;
+  epoch = 1;
+  stopAuto();
+  render();
+}
+
+function scaleX(x) { return 50 + x * 45; }
+function scaleY(y) { return 550 - y * 45; }
+
+function drawAxes() {
+  ctx.strokeStyle = '#aaa';
+  ctx.beginPath();
+  ctx.moveTo(50, 550); ctx.lineTo(550, 550);
+  ctx.moveTo(50, 550); ctx.lineTo(50, 50);
+  ctx.stroke();
+
+  // Axis labels
+  ctx.fillStyle = '#000';
+  ctx.font = '14px Arial';
+  ctx.fillText('Anzahl Streifen = x₂', 220, 585);
+  ctx.save();
+  ctx.translate(15, 350);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('Grösse = x₁', 0, 0);
+  ctx.restore();
+}
+
+function drawRegions() {
+  for (let x = 0; x <= 12; x += 0.25) {
+    for (let y = 0; y <= 12; y += 0.25) {
+      const v = w1 * x + w2 * y + b;
+      ctx.fillStyle = v >= 0 ? 'rgba(255,0,0,0.08)' : 'rgba(0,0,255,0.08)';
+      ctx.fillRect(scaleX(x)-10, scaleY(y)-10, 20, 20);
+    }
+  }
+}
+
+function drawPoints() {
+  data.forEach((d, i) => {
+    ctx.beginPath();
+    ctx.arc(scaleX(d.x), scaleY(d.y), i === index ? 9 : 6, 0, Math.PI * 2);
+    ctx.fillStyle = d.label === 'H' ? 'red' : 'blue';
+    ctx.fill();
+
+    // Highlight current point
+    if (i === index) {
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.lineWidth = 1;
+    }
+  });
+}
+
+function drawBoundary() {
+  ctx.strokeStyle = 'black';
+  ctx.beginPath();
+  let x1 = 0, x2 = 12;
+  let y1 = -(w1 * x1 + b) / w2;
+  let y2 = -(w1 * x2 + b) / w2;
+  ctx.moveTo(scaleX(x1), scaleY(y1));
+  ctx.lineTo(scaleX(x2), scaleY(y2));
+  ctx.stroke();
+}
+
+function updateWeights(p) {
+  const target = p.label === 'H' ? 1 : -1;
+  const out = w1 * p.x + w2 * p.y + b >= 0 ? 1 : -1;
+  const err = target - out;
+  w1 += lr * err * p.x;
+  w2 += lr * err * p.y;
+  b  += lr * err;
+}
+
+function step() {
+  updateWeights(data[index]);
+  index++;
+  if (index >= data.length) { index = 0; epoch++; }
+  render();
+}
+
+function toggleAuto() {
+  auto ? stopAuto() : startAuto();
+}
+
+function startAuto() {
+  auto = true;
+  timer = setInterval(step, 700);
+}
+
+function stopAuto() {
+  auto = false;
+  if (timer) clearInterval(timer);
+}
+
+function renderList() {
+  const list = document.getElementById('dataList');
+  list.innerHTML = '';
+  data.forEach((d, i) => {
+    const div = document.createElement('div');
+    div.className = 'point ' + (d.label === 'H' ? 'dog' : 'cat');
+    if (i === index) div.classList.add('active');
+    div.textContent = `${d.label} – Streifen: ${d.x}, Grösse: ${d.y}`;
+    list.appendChild(div);
+  });
+}
+
+function renderWeights() {
+  document.getElementById('weights').innerHTML =
+    `<strong>Gewichte</strong><br>w₁ = ${w1.toFixed(2)}<br>w₂ = ${w2.toFixed(2)}<br>b = ${b.toFixed(2)}`;
+  document.getElementById('epochInfo').innerHTML = `<strong>Epoche:</strong> ${epoch}`;
+}
+
+function render() {
+  ctx.clearRect(0,0,600,600);
+  drawRegions();
+  drawAxes();
+  drawBoundary();
+  drawPoints();
+  renderList();
+  renderWeights();
+}
+
+resetTraining();
+</script>
+</body>
+</html>
