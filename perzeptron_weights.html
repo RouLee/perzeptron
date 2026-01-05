@@ -63,7 +63,7 @@
 
     <p>
         Activation function:<br>
-        <strong>sign(w₁·x + w₂·y + b)</strong><br>
+        <strong>sign(w₁·x₁ + w₂·x₂ + b)</strong><br>
         → +1 (blue), −1 (red)
     </p>
 </div>
@@ -166,7 +166,7 @@
             ctx.fillText(v.toString(), originX + 8, py + 4);
         });
         
-        // Draw decision boundary: w1*x + w2*y + b = 0
+        // Draw decision boundary: w1*x1 + w2*x2 + b = 0
         if (w2 !== 0) {
             ctx.strokeStyle = "black";
             ctx.lineWidth = 2;
@@ -193,4 +193,5 @@
 
 </body>
 </html>
+
 
