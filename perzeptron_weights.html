@@ -90,6 +90,31 @@
         return x >= 0 ? 1 : -1;
     }
 
+    function drawTicks() {
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 1;
+
+    const tickSize = 6;
+
+    // X-axis ticks at x = -1 and x = +1
+    [-1, 1].forEach(v => {
+        const px = originX + v * scale;
+        ctx.beginPath();
+        ctx.moveTo(px, originY - tickSize);
+        ctx.lineTo(px, originY + tickSize);
+        ctx.stroke();
+    });
+
+    // Y-axis ticks at y = -1 and y = +1
+    [-1, 1].forEach(v => {
+        const py = originY - v * scale;
+        ctx.beginPath();
+        ctx.moveTo(originX - tickSize, py);
+        ctx.lineTo(originX + tickSize, py);
+        ctx.stroke();
+    });
+}
+    
     function draw() {
         const w1 = parseFloat(w1Slider.value);
         const w2 = parseFloat(w2Slider.value);
@@ -125,6 +150,22 @@
         ctx.lineTo(originX, canvas.height);
         ctx.stroke();
 
+        drawTicks();
+        ctx.font = "12px Arial";
+        ctx.fillStyle = "black";
+        
+        // X labels
+        [-1, 1].forEach(v => {
+            const px = originX + v * scale;
+            ctx.fillText(v.toString(), px - 4, originY + 18);
+        });
+        
+        // Y labels
+        [-1, 1].forEach(v => {
+            const py = originY - v * scale;
+            ctx.fillText(v.toString(), originX + 8, py + 4);
+        });
+        
         // Draw decision boundary: w1*x + w2*y + b = 0
         if (w2 !== 0) {
             ctx.strokeStyle = "black";
@@ -152,3 +193,4 @@
 
 </body>
 </html>
+
