@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Interactive Perceptron</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            display: flex;
+            gap: 30px;
+        }
+
+        .controls {
+            width: 250px;
+        }
+
+        .controls h2 {
+            margin-top: 0;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+        }
+
+        canvas {
+            border: 1px solid black;
+            background: #f9f9f9;
+        }
+
+        .value {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="controls">
+    <h2>Perceptron Parameters - XOR</h2>
+
+    <label>
+        Weight w₁:
+        <span class="value" id="w1Value">1</span>
+        <input type="range" id="w1" min="-5" max="5" step="0.1" value="1">
+    </label>
+
+    <label>
+        Weight w₂:
+        <span class="value" id="w2Value">1</span>
+        <input type="range" id="w2" min="-5" max="5" step="0.1" value="1">
+    </label>
+
+    <label>
+        Bias b:
+        <span class="value" id="bValue">0</span>
+        <input type="range" id="b" min="-5" max="5" step="0.1" value="0">
+    </label>
+
+    <p>
+        Activation function:<br>
+        <strong>sign(w₁·x₁ + w₂·x₂ + b)</strong><br>
+        → +1 (blue), −1 (red)
+    </p>
+</div>
+
+<canvas id="plot" width="500" height="500"></canvas>
+
+<script>
+    const canvas = document.getElementById("plot");
+    const ctx = canvas.getContext("2d");
+
+    const w1Slider = document.getElementById("w1");
+    const w2Slider = document.getElementById("w2");
+    const bSlider = document.getElementById("b");
+
+    const w1Value = document.getElementById("w1Value");
+    const w2Value = document.getElementById("w2Value");
+    const bValue = document.getElementById("bValue");
+
+    const scale = 50; // pixels per unit
+    const originX = canvas.width / 2;
+    const originY = canvas.height / 2;
+
+    function sign(x) {
+        return x >= 0 ? 1 : -1;
+    }
+
+    function drawTicks() {
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 1;
+
+    const tickSize = 6;
+
+    // X-axis ticks at x = -1 and x = +1
+    [-1, 1].forEach(v => {
+        const px = originX + v * scale;
+        ctx.beginPath();
+        ctx.moveTo(px, originY - tickSize);
+        ctx.lineTo(px, originY + tickSize);
+        ctx.stroke();
+    });
+
+    // Y-axis ticks at y = -1 and y = +1
+    [-1, 1].forEach(v => {
+        const py = originY - v * scale;
+        ctx.beginPath();
+        ctx.moveTo(originX - tickSize, py);
+        ctx.lineTo(originX + tickSize, py);
+        ctx.stroke();
+    });
+}
+    
+    function draw() {
+        const w1 = parseFloat(w1Slider.value);
+        const w2 = parseFloat(w2Slider.value);
+        const b = parseFloat(bSlider.value);
+
+        w1Value.textContent = w1;
+        w2Value.textContent = w2;
+        bValue.textContent = b;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw decision regions
+        for (let px = 0; px < canvas.width; px += 4) {
+            for (let py = 0; py < canvas.height; py += 4) {
+                const x = (px - originX) / scale;
+                const y = (originY - py) / scale;
+
+                const output = sign(w1 * x + w2 * y + b);
+                ctx.fillStyle = output === 1
+                    ? "rgba(0, 100, 255, 0.15)"
+                    : "rgba(255, 0, 0, 0.15)";
+                ctx.fillRect(px, py, 4, 4);
+            }
+        }
+
+        // Draw axes
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, originY);
+        ctx.lineTo(canvas.width, originY);
+        ctx.moveTo(originX, 0);
+        ctx.lineTo(originX, canvas.height);
+        ctx.stroke();
+
+        drawTicks();
+        ctx.font = "12px Arial";
+        ctx.fillStyle = "black";
+        
+        // X labels
+        [-1, 1].forEach(v => {
+            const px = originX + v * scale;
+            ctx.fillText(v.toString(), px - 4, originY + 18);
+        });
+        
+        // Y labels
+        [-1, 1].forEach(v => {
+            const py = originY - v * scale;
+            ctx.fillText(v.toString(), originX + 8, py + 4);
+        });
+        
+        // add the datapoints for XOR assign a Circle Marker for -1 and a Cross Marker for +1
+        const points = [
+            {x: -1, y: -1, label: -1},
+            {x: -1, y: 1, label: 1},
+            {x: 1, y: -1, label: 1},
+            {x: 1, y: 1, label: -1},
+        ];
+
+        // Draw data points
+        points.forEach(point => {
+            const px = originX + point.x * scale;
+            const py = originY - point.y * scale;
+
+            if (point.label === 1) {
+                // Draw Cross Marker for +1
+                ctx.strokeStyle = "blue";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(px - 6, py - 6);
+                ctx.lineTo(px + 6, py + 6);
+                ctx.moveTo(px + 6, py - 6);
+                ctx.lineTo(px - 6, py + 6);
+                ctx.stroke();
+            } else {
+                // Draw Circle Marker for -1
+                ctx.strokeStyle = "red";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(px, py, 6, 0, 2 * Math.PI);
+                ctx.stroke();
+            }
+        });
+
+        // Draw decision boundary: w1*x1 + w2*x2 + b = 0
+        if (w2 !== 0) {
+            ctx.strokeStyle = "black";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+
+            const x1 = -canvas.width / scale;
+            const y1 = -(w1 * x1 + b) / w2;
+
+            const x2 = canvas.width / scale;
+            const y2 = -(w1 * x2 + b) / w2;
+
+            ctx.moveTo(originX + x1 * scale, originY - y1 * scale);
+            ctx.lineTo(originX + x2 * scale, originY - y2 * scale);
+            ctx.stroke();
+        }
+
+
+    }
+
+    w1Slider.addEventListener("input", draw);
+    w2Slider.addEventListener("input", draw);
+    bSlider.addEventListener("input", draw);
+
+    draw();
+</script>
+
+</body>
+</html>
+
+
