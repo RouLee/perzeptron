@@ -28,6 +28,13 @@
             width: 100%;
         }
 
+        input[type="number"] {
+            width: 70px;
+            padding: 4px;
+            margin-right: 6px;
+            box-sizing: border-box;
+        }
+
         canvas {
             border: 1px solid black;
             background: #f9f9f9;
@@ -61,15 +68,39 @@
         <input type="range" id="b" min="-5" max="5" step="0.1" value="0">
     </label>
 
+    <fieldset style="margin-top:12px; padding:8px; border:1px solid #ddd;">
+        <legend style="font-weight:bold">Points (x, y)</legend>
+
+        <label>Point A (Circle, class 0):
+            <input type="number" id="p0x" step="0.1" value="-1"> 
+            <input type="number" id="p0y" step="0.1" value="-1">
+        </label>
+
+        <label>Point B (Cross, class 1):
+            <input type="number" id="p1x" step="0.1" value="-1"> 
+            <input type="number" id="p1y" step="0.1" value="1">
+        </label>
+
+        <label>Point C (Cross, class 1):
+            <input type="number" id="p2x" step="0.1" value="1"> 
+            <input type="number" id="p2y" step="0.1" value="-1">
+        </label>
+
+        <label>Point D (Circle, class 0):
+            <input type="number" id="p3x" step="0.1" value="1"> 
+            <input type="number" id="p3y" step="0.1" value="1">
+        </label>
+    </fieldset>
+
     <p>
         Activation function:<br>
-        <strong>sign(w₁·x₁ + w₂·x₂ + b)</strong><br>
-        → +1 (blue), −1 (red)
+        <strong>step(w₁·x₁ + w₂·x₂ + b)</strong><br>
+        → 1 (blue), 0 (red)
     </p>
 </div>
-
-<canvas id="plot" width="500" height="500"></canvas>
-
+<div height="500">
+    <canvas id="plot" width="500" height="500"></canvas>
+</div>
 <script>
     const canvas = document.getElementById("plot");
     const ctx = canvas.getContext("2d");
@@ -82,12 +113,32 @@
     const w2Value = document.getElementById("w2Value");
     const bValue = document.getElementById("bValue");
 
+    // point input elements
+    const p0x = document.getElementById("p0x");
+    const p0y = document.getElementById("p0y");
+    const p1x = document.getElementById("p1x");
+    const p1y = document.getElementById("p1y");
+    const p2x = document.getElementById("p2x");
+    const p2y = document.getElementById("p2y");
+    const p3x = document.getElementById("p3x");
+    const p3y = document.getElementById("p3y");
+
     const scale = 50; // pixels per unit
     const originX = canvas.width / 2;
     const originY = canvas.height / 2;
 
-    function sign(x) {
-        return x >= 0 ? 1 : -1;
+    function step(x) {
+        return x >= 0 ? 1 : 0;
+    }
+
+    function getPointsFromInputs() {
+        function v(el) { const n = parseFloat(el.value); return isNaN(n) ? 0 : n; }
+        return [
+            { x: v(p0x), y: v(p0y), label: 0 },
+            { x: v(p1x), y: v(p1y), label: 1 },
+            { x: v(p2x), y: v(p2y), label: 1 },
+            { x: v(p3x), y: v(p3y), label: 0 }
+        ];
     }
 
     function drawTicks() {
@@ -132,7 +183,7 @@
                 const x = (px - originX) / scale;
                 const y = (originY - py) / scale;
 
-                const output = sign(w1 * x + w2 * y + b);
+                const output = step(w1 * x + w2 * y + b);
                 ctx.fillStyle = output === 1
                     ? "rgba(0, 100, 255, 0.15)"
                     : "rgba(255, 0, 0, 0.15)";
@@ -166,13 +217,8 @@
             ctx.fillText(v.toString(), originX + 8, py + 4);
         });
         
-        // add the datapoints for XOR assign a Circle Marker for -1 and a Cross Marker for +1
-        const points = [
-            {x: -1, y: -1, label: -1},
-            {x: -1, y: 1, label: 1},
-            {x: 1, y: -1, label: 1},
-            {x: 1, y: 1, label: -1},
-        ];
+        // Read datapoints from the input fields
+        const points = getPointsFromInputs();
 
         // Draw data points
         points.forEach(point => {
@@ -190,7 +236,7 @@
                 ctx.lineTo(px - 6, py + 6);
                 ctx.stroke();
             } else {
-                // Draw Circle Marker for -1
+                // Draw Circle Marker for 0
                 ctx.strokeStyle = "red";
                 ctx.lineWidth = 2;
                 ctx.beginPath();
@@ -222,6 +268,7 @@
     w1Slider.addEventListener("input", draw);
     w2Slider.addEventListener("input", draw);
     bSlider.addEventListener("input", draw);
+    [p0x,p0y,p1x,p1y,p2x,p2y,p3x,p3y].forEach(el => el.addEventListener('input', draw));
 
     draw();
 </script>
